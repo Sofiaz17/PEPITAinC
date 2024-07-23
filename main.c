@@ -11,8 +11,8 @@
 #define NUM_NEU_L1 784
 #define NUM_NEU_L2 128
 #define NUM_NEU_L3 10
-#define BATCH_SIZE 256
-#define EPOCHS 1
+#define BATCH_SIZE 128
+#define EPOCHS 100
 
 int neu_per_lay[] = {NUM_NEU_L1, NUM_NEU_L2, NUM_NEU_L3};
 
@@ -448,8 +448,8 @@ void model_train(struct NeuralNet* nn, float** X_train, float** y_train, float* 
             shuffler_train[i] = i;
         }
 
+       
         shuffle(shuffler_train, N_SAMPLES);
-   
         if(epoch == 50){
             learning_rate *= 0.2;
         }
@@ -461,20 +461,23 @@ void model_train(struct NeuralNet* nn, float** X_train, float** y_train, float* 
         
         int idx = -1;
         float max_val = (float)INT_MIN;
+        int in_cnt_train = 0;
 
         //alloca batch array
         for(int batch_num=0;batch_num<floor(N_SAMPLES/BATCH_SIZE);batch_num++){
             //assegna batch
-            printf("[%d]TRAIN BATCH %d\n", epoch, batch_num);
+            // printf("[%d]TRAIN BATCH %d\n", epoch, batch_num);
                 
             for(int batch_elem=0;batch_elem<BATCH_SIZE;batch_elem++){
                 //do masks
             
                 for(int j=0;j<nn->n_neurons_per_layer[0];j++){          //££ + 0 
-                    nn->actv_out[0][j] = X_train[shuffler_train[batch_elem+batch_count*BATCH_SIZE]][j];      //assign input ??????i?????
+                    // nn->actv_out[0][j] = X_train[shuffler_train[batch_elem+batch_count*BATCH_SIZE]][j];      //assign input ??????i?????
+                    nn->actv_out[0][j] = X_train[shuffler_train[in_cnt_train]][j];
+                    // printf(" batch_num[%d]-nn->actv_out[0][%d] = X_train[%d]][%d]\n",batch_num,j,shuffler_train[in_cnt_train],j);
                 }
                 for(int j=0;j<nn->n_neurons_per_layer[nn->n_layers-1];j++){       //££ + 0
-                    nn->targets[j] = y_train[shuffler_train[batch_elem+batch_count*BATCH_SIZE]][j];        //assign target labels (one hot)
+                    nn->targets[j] = y_train[shuffler_train[in_cnt_train]][j];        //assign target labels (one hot)
                 }
                 for(int in_neu=0;in_neu<N_DIMS;in_neu++){
                     inputs[batch_elem*N_DIMS+in_neu] = nn->actv_out[0][in_neu];
@@ -486,6 +489,7 @@ void model_train(struct NeuralNet* nn, float** X_train, float** y_train, float* 
                     outputs[batch_elem*N_CLASSES+out_neu] = nn->actv_out[nn->n_layers-1][out_neu]; 
                     targets[batch_elem*N_CLASSES+out_neu] = nn->targets[out_neu];
                 }
+                ++in_cnt_train;
             }
             total += BATCH_SIZE;
             // printf("batch[%d] first forward pass\n",batch_num);
@@ -525,9 +529,12 @@ void model_train(struct NeuralNet* nn, float** X_train, float** y_train, float* 
                 }
             }
             // printf("batch[%d] mod_inputs\n",batch_num);
+            int in_cnt_train_2 = 0;
            
             for(int batch_elem=0;batch_elem<BATCH_SIZE;batch_elem++){
                 //do masks
+                max_val = (float)INT_MIN;
+                idx = -1;
             
                 for(int j=0;j<nn->n_neurons_per_layer[0];j++){          //££ + 0 
                     nn->actv_out[0][j] = mod_inputs[batch_elem*nn->n_neurons_per_layer[0] + j];      //assign input
@@ -546,9 +553,10 @@ void model_train(struct NeuralNet* nn, float** X_train, float** y_train, float* 
                     }
                 }
                 
-                if(idx == (int)y_train_temp[shuffler_train[batch_elem+batch_count*BATCH_SIZE]]){   //checks train prediction
+                if(idx == (int)y_train_temp[shuffler_train[in_cnt_train_2]]){   //checks train prediction
                     correct++;
                 }
+                ++in_cnt_train_2;
             }
             // printf("batch[%d] second forward pass\n",batch_num);
             
@@ -642,17 +650,25 @@ void model_train(struct NeuralNet* nn, float** X_train, float** y_train, float* 
 
         shuffle(shuffler_test, N_TEST_SAMPLES);
 
+        int in_cnt_test = 0;
+
         for(int batch_num=0;batch_num<floor(N_TEST_SAMPLES/BATCH_SIZE);batch_num++){
+        
             // printf("[%d]TEST BATCH %d\n", epoch,batch_num);
 
             for(int batch_elem=0;batch_elem<BATCH_SIZE;batch_elem++){
+
+                max_val = (float)INT_MIN;
+                idx = -1;
+            
             
                 for(int j=0;j<nn->n_neurons_per_layer[0];j++){          //££ + 0 
-                    nn->actv_out[0][j] = X_test[shuffler_test[batch_elem+batch_count*BATCH_SIZE]][j];      //assign input ??????i?????
+                    // nn->actv_out[0][j] = X_test[shuffler_test[j+batch_count*BATCH_SIZE]][j];      //assign input ??????i?????
+                    nn->actv_out[0][j] = X_test[shuffler_test[in_cnt_test]][j]; 
                 }
                 
                 for(int j=0;j<nn->n_neurons_per_layer[nn->n_layers-1];j++){       //££ + 0
-                    nn->targets[j] = y_test[shuffler_test[batch_elem+batch_count*BATCH_SIZE]][j];        //assign target labels (one hot)
+                    nn->targets[j] = y_test[shuffler_test[in_cnt_test]][j];        //assign target labels (one hot)
                 }
                 
                 forward_propagation(nn, activation_fun, loss);
@@ -665,9 +681,10 @@ void model_train(struct NeuralNet* nn, float** X_train, float** y_train, float* 
                 }
                 
                 
-                if(idx == (int)y_test_temp[shuffler_test[batch_elem+batch_count*BATCH_SIZE]]){
+                if(idx == (int)y_test_temp[shuffler_test[in_cnt_test]]){
                     correct++;
                 }
+                ++in_cnt_test;
             }
             total += BATCH_SIZE;
             // printf("batch[%d] test finished\n",batch_num);
@@ -676,24 +693,24 @@ void model_train(struct NeuralNet* nn, float** X_train, float** y_train, float* 
         printf("Test accuracy epoch [%d]: %f %%\n",epoch, 100 * correct / total);
         test_accs[epoch] = 100 * correct / total;
 
-        char buf[50];
-        snprintf(buf, sizeof(buf), "PEPITA_Cimplementation[epoch:%d].txt", epoch);
-
-        FILE *file = fopen(buf, "w");
-        printf("open file\n");
-        fprintf(file, "EPOCH %d\n", epoch);
+        
+        
+    }
     
+    printf("FINISHED TRAINING\n");
+
+    FILE *file = fopen("PEPITA_C_implem.txt", "w");
+    printf("open file\n");
+
+    for(int epoch=0;epoch<EPOCHS;epoch++){
+        fprintf(file, "EPOCH %d\n", epoch);
         fprintf(file, "Train loss epoch [%d]: %lf\n", epoch, train_losses[epoch]);
         fprintf(file, "Train accuracy epoch [%d]: %lf\n", epoch, train_accs[epoch]);
         fprintf(file, "Test accuracy epoch [%d]: %lf\n", epoch, test_accs[epoch]);
-
-        fclose(file);
-        printf("close file\n");
-        // exp_number += 1;
     }
-
     
-    printf("FINISHED TRAINING\n");
+    fclose(file);
+    printf("close file\n");
 
     printf("Freeing memory...\n");
     // free(test_accs);
