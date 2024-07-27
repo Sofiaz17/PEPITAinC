@@ -5,23 +5,25 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#define N_SAMPLES 60000
+#define N_SAMPLES_1 60000
 #define N_DIMS 784
 #define N_CLASSES 10
+#define N_TEST_SAMPLES_1 10000
 #define N_TEST_SAMPLES 10000
+#define N_SAMPLES 60000
 
 
 
 // Function to read training and test data and store them appropriately
-void read_csv_file(float** data, float* y_temp, float** y, char* dataset);
+void read_csv_file(double** data, double* y_temp, double** y, char* dataset);
 
 // Function to scale the dataset
-void scale_data(float** data, char* dataset);
+void scale_data(double** data, char* dataset);
 
 // Function to normalize the dataset
-void normalize_data(float** X_train, float** X_test);
+void normalize_data(double** X_train, double** X_test);
 
 // Function to get data in batches
-void fetch_batch(float** batch_data, float** batch_labels, float batch_size, int batch_index, float** img, float** lbl);
+void fetch_batch(double** batch_data, double** batch_labels, double batch_size, int batch_index, double** img, double** lbl);
 
 #endif
